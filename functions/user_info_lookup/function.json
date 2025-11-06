@@ -3,6 +3,7 @@
   "entrypoint": "http_lookup",
   "trigger": "http",
   "region": "us-central1",
+  "runtime": "python312", 
   "base_image": "python313",
   "allow_unauthenticated": true
 }

@@ -59,7 +59,7 @@ def http_lookup(request: Request):
 
         if not row:
             logger.info({"event": "lookup_done", "status": "not_found", "elapsed_ms": elapsed_ms, "phone_masked": masked})
-            return jsonify({"zipcode": None}), 200
+            return {"zipCode": None, "success": True,"statusCode":200}
 
         zipcode = row["postalCode"]
         logger.info({"event": "lookup_done", "status": "ok", "elapsed_ms": elapsed_ms, "phone_masked": masked, "zipcode": zipcode})
