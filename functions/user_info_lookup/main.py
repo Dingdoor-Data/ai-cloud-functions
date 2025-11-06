@@ -36,7 +36,6 @@ SELECT postalCode FROM ranked WHERE rn = 1 ORDER BY createdAt DESC LIMIT 1;
 
 @http
 def http_lookup(request: Request):
-    # --- allow GET & POST; flip the branches if you want POST-only
     if request.method == "POST":
         body = request.get_json(silent=True) or {}
         phone = body.get("phoneNumber")
