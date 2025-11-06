@@ -21,7 +21,6 @@ def _mask(phone: str) -> str:
     tail = d[-4:] if len(d) >= 4 else d
     return f"...{tail}"
 
-# ------------- query -------------------------------------------------
 _SQL = """
 WITH ranked AS (
   SELECT pl.postalCode, p.phoneNumber, p.email, k.createdAt,
@@ -58,11 +57,11 @@ def http_lookup(request: Request):
 
         if not row:
             logger.info({"event": "lookup_done", "status": "not_found", "elapsed_ms": elapsed_ms, "phone_masked": masked})
-            return {"zipCode": None, "success": True,"statusCode":200}
+            return {"zipCode": None, "success": True,"statusCode":200, "message":"User info lookup successful, but no data found."}
 
         zipcode = row["postalCode"]
         logger.info({"event": "lookup_done", "status": "ok", "elapsed_ms": elapsed_ms, "phone_masked": masked, "zipcode": zipcode})
-        return {"zipCode": zipcode, "success": True,"statusCode":200}
+        return {"zipCode": zipcode, "success": True,"statusCode":200,"message":"User info lookup successful."}
 
     except Exception as e:
         elapsed_ms = round((time.monotonic() - t0) * 1000, 1)
