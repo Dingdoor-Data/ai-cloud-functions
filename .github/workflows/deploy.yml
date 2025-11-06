@@ -1,4 +1,4 @@
-name: Deploy Cloud Run functions
+name: Deploy Cloud Functions (v2)
 
 on:
   push:
@@ -12,7 +12,6 @@ env:
   REGION: us-central1
   PROJECT_ID: ${{ github.ref_name == 'master' && secrets.GCP_PROJECT_PROD || secrets.GCP_PROJECT_DEV }}
   CREDS_JSON: ${{ github.ref_name == 'master' && secrets.GOOGLE_CREDENTIALS_PROD || secrets.GOOGLE_CREDENTIALS_DEV }}
-
 
 jobs:
   detect:
@@ -30,8 +29,10 @@ jobs:
         run: |
           BRANCH="${{ github.ref_name }}"
           if [ "$BRANCH" = "development" ]; then
+            # Deploy ALL functions on dev
             find functions -mindepth 1 -maxdepth 1 -type d -print > changed.txt
           else
+            # Deploy CHANGED functions on master
             BASE="${{ github.event.before }}"
             if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
               BASE="$(git rev-parse HEAD^ || true)"
@@ -50,77 +51,72 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # id-token is NOT required when using key JSON
     strategy:
       fail-fast: false
       matrix:
         dir: ${{ fromJSON(needs.detect.outputs.dirs) }}
-    env:
-      PROJECT_ID: ${{ github.ref_name == 'master' && secrets.GCP_PROJECT_PROD || secrets.GCP_PROJECT_DEV }}
     steps:
       - uses: actions/checkout@v4
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      # 🔁 Auth with Service Account Key JSON (replaces WIF)
+      # Auth with Service Account JSON (per-branch)
       - uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ env.CREDS_JSON }}   # <- your key
+          credentials_json: ${{ env.CREDS_JSON }}
 
       - uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ env.PROJECT_ID }}
 
-      - name: Deploy ${{ matrix.dir }}
+      - name: Deploy ${{ matrix.dir }} with gcloud functions (Gen2)
         shell: bash
+        env:
+          REGION: ${{ env.REGION }}
+          PROJECT_ID: ${{ env.PROJECT_ID }}
         run: |
           set -euo pipefail
           DIR="${{ matrix.dir }}"
           NAME=$(jq -r .name "$DIR/function.json")
           ENTRY=$(jq -r .entrypoint "$DIR/function.json")
-          REGION="${{ env.REGION }}"
-          BASE=$(jq -r .base_image "$DIR/function.json")
+          RUNTIME=$(jq -r .runtime "$DIR/function.json")   # e.g. "python312"
           TRIGGER=$(jq -r .trigger "$DIR/function.json")
           AUTH=$(jq -r .allow_unauthenticated "$DIR/function.json")
 
           if [ "$TRIGGER" = "http" ]; then
-            UA_FLAG="--no-allow-unauthenticated"
-            [ "$AUTH" = "true" ] && UA_FLAG="--allow-unauthenticated"
-            gcloud run deploy "$NAME" \
-              --project "${{ env.PROJECT_ID }}" \
-              --region "$REGION" \
-              --source "$DIR" \
-              --function "$ENTRY" \
-              --base-image "$BASE" \
-              $UA_FLAG
+            UA=""
+            [ "$AUTH" = "true" ] && UA="--allow-unauthenticated"
 
-            URL=$(gcloud run services describe "$NAME" \
-              --project "${{ env.PROJECT_ID }}" --region "$REGION" \
-              --format='value(status.url)')
+            gcloud functions deploy "$NAME" \
+              --gen2 \
+              --project "$PROJECT_ID" \
+              --region "$REGION" \
+              --runtime "$RUNTIME" \
+              --source "$DIR" \
+              --entry-point "$ENTRY" \
+              --trigger-http \
+              $UA
+
+            URL=$(gcloud functions describe "$NAME" --gen2 --region "$REGION" \
+              --format='value(serviceConfig.uri)')
             echo "### $NAME URL" >> $GITHUB_STEP_SUMMARY
             echo "$URL" >> $GITHUB_STEP_SUMMARY
 
           elif [ "$TRIGGER" = "firestore" ]; then
-            gcloud run deploy "$NAME" \
-              --project "${{ env.PROJECT_ID }}" \
-              --region "$REGION" \
-              --source "$DIR" \
-              --function "$ENTRY" \
-              --base-image "$BASE"
-
             DB=$(jq -r '.event_filters.database' "$DIR/function.json")
             PATTERN=$(jq -r '.path_pattern' "$DIR/function.json")
-            TRIGGER_NAME="${NAME}-trigger"
 
-            gcloud eventarc triggers delete "$TRIGGER_NAME" --location="$REGION" --quiet || true
-            gcloud eventarc triggers create "$TRIGGER_NAME" \
-              --location="$REGION" \
-              --destination-run-service="$NAME" \
-              --destination-run-region="$REGION" \
-              --event-filters=type=google.cloud.firestore.document.v1.written \
-              --event-filters=database="$DB" \
-              --event-data-content-type=application/protobuf \
-              --event-filters-path-pattern=document="$PATTERN"
+            gcloud functions deploy "$NAME" \
+              --gen2 \
+              --project "$PROJECT_ID" \
+              --region "$REGION" \
+              --runtime "$RUNTIME" \
+              --source "$DIR" \
+              --entry-point "$ENTRY" \
+              --trigger-event-filters=type=google.cloud.firestore.document.v1.written \
+              --trigger-event-filters=database="$DB" \
+              --trigger-event-filters-path-pattern=document="$PATTERN"
+
           else
             echo "Unknown trigger in $DIR/function.json" >&2
             exit 1
