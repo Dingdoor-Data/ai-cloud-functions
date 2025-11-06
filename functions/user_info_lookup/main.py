@@ -39,9 +39,9 @@ def http_lookup(request: Request):
     # --- allow GET & POST; flip the branches if you want POST-only
     if request.method == "POST":
         body = request.get_json(silent=True) or {}
-        phone = body.get("phone")
+        phone = body.get("phoneNumber")
     elif request.method == "GET":
-        phone = request.args.get("phone")
+        phone = request.args.get("phoneNumber")
     else:
         return make_response({"error": "method not allowed"}, 405)
 
@@ -63,7 +63,7 @@ def http_lookup(request: Request):
 
         zipcode = row["postalCode"]
         logger.info({"event": "lookup_done", "status": "ok", "elapsed_ms": elapsed_ms, "phone_masked": masked, "zipcode": zipcode})
-        return jsonify(UserInfoResponse(zipcode=zipcode).model_dump()), 200
+        return {"zipCode": zipcode, "success": True,"statusCode":200}
 
     except Exception as e:
         elapsed_ms = round((time.monotonic() - t0) * 1000, 1)

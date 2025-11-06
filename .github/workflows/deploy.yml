@@ -28,20 +28,16 @@ jobs:
         shell: bash
         run: |
           BRANCH="${{ github.ref_name }}"
-          if [ "$BRANCH" = "development" ]; then
-            # Deploy ALL functions on dev
-            find functions -mindepth 1 -maxdepth 1 -type d -print > changed.txt
-          else
-            # Deploy CHANGED functions on master
-            BASE="${{ github.event.before }}"
-            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-              BASE="$(git rev-parse HEAD^ || true)"
-            fi
-            HEAD="${{ github.sha }}"
-            git diff --name-only "$BASE" "$HEAD" \
-              | awk -F/ '/^functions\/[^/]+\//{print $1"/"$2}' \
-              | sort -u > changed.txt
+          # Deploy CHANGED functions on master
+          BASE="${{ github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="$(git rev-parse HEAD^ || true)"
           fi
+          HEAD="${{ github.sha }}"
+          git diff --name-only "$BASE" "$HEAD" \
+            | awk -F/ '/^functions\/[^/]+\//{print $1"/"$2}' \
+            | sort -u > changed.txt
+          
           jq -Rsc 'split("\n")|map(select(length>0))' changed.txt > dirs.json
           echo "dirs=$(cat dirs.json)" >> "$GITHUB_OUTPUT"
 
