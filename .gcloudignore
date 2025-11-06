@@ -1,0 +1,17 @@
+# Always safe
+.git/
+.gitignore
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.venv/
+**/venv/
+**/.mypy_cache/
+
+# Tests & docs aren’t needed at runtime
+**/tests/
+**/test_*.py
+**/docs/
+
+# Node leftovers (if any)
+**/node_modules/

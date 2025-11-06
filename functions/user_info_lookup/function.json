@@ -1,0 +1,8 @@
+{
+  "name": "user-info-lookup",
+  "entrypoint": "http_lookup",
+  "trigger": "http",
+  "region": "us-central1",
+  "base_image": "python313",
+  "allow_unauthenticated": true
+}
