@@ -58,7 +58,7 @@ def http_lookup(request: Request):
             logger.info({"event": "lookup_done", "status": "not_found", "elapsed_ms": elapsed_ms, "phone_masked": masked})
             return {"zipCode": None, "firstName":None, "lastName":None, "success": True,"statusCode":200, "message":"User info lookup successful, but no data found."}
 
-        zipcode, firstName, lastName = row["postalCode"], row["firstName"], row["lastName"]
+        zipcode, firstName, lastName = row["postalCode"], row["name"], row["lastName"]
         logger.info({"event": "lookup_done", "status": "ok", "elapsed_ms": elapsed_ms, "phone_masked": masked, "zipcode": zipcode})
         return {"zipCode": zipcode, "firstName":firstName, "lastName":lastName, "success": True,"statusCode":200,"message":"User info lookup successful."}
 
