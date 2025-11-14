@@ -7,12 +7,11 @@ from google.cloud.logging_v2.handlers import StructuredLogHandler
 
 from utils.bq_utils import fetch_one
 from utils.phone import normalize_phone
-from models.user_info_models import UserInfoResponse
 
 # ------------- logging (structured -> Cloud Logging) -----------------
 logger = logging.getLogger("user_info_lookup")
-if not logger.handlers:  # avoid duplicate handlers on warm instances
-    handler = StructuredLogHandler()  # writes JSON to stdout
+if not logger.handlers:  
+    handler = StructuredLogHandler() 
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
 
@@ -23,14 +22,14 @@ def _mask(phone: str) -> str:
 
 _SQL = """
 WITH ranked AS (
-  SELECT pl.postalCode, p.phoneNumber, p.email, k.createdAt,
+  SELECT pl.postalCode, p.phoneNumber, p.email, k.createdAt, p.firstName, p.lastName
          ROW_NUMBER() OVER (PARTITION BY p.id ORDER BY k.createdAt DESC) AS rn
   FROM `dingdoor_data_warehouse.profiles` AS p
   LEFT JOIN `dingdoor_data_warehouse.knocks`  AS k ON p.id = k.userId
   LEFT JOIN `dingdoor_data_warehouse.places`  AS pl ON pl.id = k.placeId
   WHERE p.phoneNumber = @phone AND pl.postalCode IS NOT NULL
 )
-SELECT postalCode FROM ranked WHERE rn = 1 ORDER BY createdAt DESC LIMIT 1;
+SELECT postalCode,  FROM ranked WHERE rn = 1 ORDER BY createdAt DESC LIMIT 1;
 """
 
 @http
@@ -57,11 +56,11 @@ def http_lookup(request: Request):
 
         if not row:
             logger.info({"event": "lookup_done", "status": "not_found", "elapsed_ms": elapsed_ms, "phone_masked": masked})
-            return {"zipCode": None, "success": True,"statusCode":200, "message":"User info lookup successful, but no data found."}
+            return {"zipCode": None, "firstName":None, "lastName":None, "success": True,"statusCode":200, "message":"User info lookup successful, but no data found."}
 
-        zipcode = row["postalCode"]
+        zipcode, firstName, lastName = row["postalCode"], row["firstName"], row["lastName"]
         logger.info({"event": "lookup_done", "status": "ok", "elapsed_ms": elapsed_ms, "phone_masked": masked, "zipcode": zipcode})
-        return {"zipCode": zipcode, "success": True,"statusCode":200,"message":"User info lookup successful."}
+        return {"zipCode": zipcode, "firstName":firstName, "lastName":lastName, "success": True,"statusCode":200,"message":"User info lookup successful."}
 
     except Exception as e:
         elapsed_ms = round((time.monotonic() - t0) * 1000, 1)
