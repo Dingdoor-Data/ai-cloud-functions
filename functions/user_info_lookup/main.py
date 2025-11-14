@@ -22,14 +22,14 @@ def _mask(phone: str) -> str:
 
 _SQL = """
 WITH ranked AS (
-  SELECT pl.postalCode, p.phoneNumber, p.email, k.createdAt, p.firstName, p.lastName
+  SELECT pl.postalCode, p.phoneNumber, p.email, k.createdAt, p.name, p.lastName,
          ROW_NUMBER() OVER (PARTITION BY p.id ORDER BY k.createdAt DESC) AS rn
   FROM `dingdoor_data_warehouse.profiles` AS p
   LEFT JOIN `dingdoor_data_warehouse.knocks`  AS k ON p.id = k.userId
   LEFT JOIN `dingdoor_data_warehouse.places`  AS pl ON pl.id = k.placeId
   WHERE p.phoneNumber = @phone AND pl.postalCode IS NOT NULL
 )
-SELECT postalCode,  FROM ranked WHERE rn = 1 ORDER BY createdAt DESC LIMIT 1;
+SELECT postalCode, name, lastName FROM ranked WHERE rn = 1 ORDER BY createdAt DESC LIMIT 1;
 """
 
 @http
