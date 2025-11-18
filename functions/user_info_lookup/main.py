@@ -1,11 +1,10 @@
-import time
 import logging
 import re
 from flask import Request, jsonify, make_response
 from functions_framework import http
 from google.cloud.logging_v2.handlers import StructuredLogHandler
 
-from utils.bq_utils import fetch_one
+from dingdoor_utils_package import fetch_one
 from utils.phone import normalize_phone
 
 # ------------- logging (structured -> Cloud Logging) -----------------
@@ -46,23 +45,20 @@ def http_lookup(request: Request):
         return jsonify({"error": "missing 'phone'"}), 400
 
     masked = _mask(phone)
-    t0 = time.monotonic()
     logger.info({"event": "lookup_start", "method": request.method, "phone_masked": masked})
 
     try:
         norm = normalize_phone(phone)
         row = fetch_one(_SQL, {"phone": norm}, timeout=20.0)
-        elapsed_ms = round((time.monotonic() - t0) * 1000, 1)
 
         if not row:
-            logger.info({"event": "lookup_done", "status": "not_found", "elapsed_ms": elapsed_ms, "phone_masked": masked})
+            logger.info({"event": "lookup_done", "status": "not_found",  "phone_masked": masked})
             return {"zipCode": None, "firstName":None, "lastName":None, "success": True,"statusCode":200, "message":"User info lookup successful, but no data found."}
 
         zipcode, firstName, lastName = row["postalCode"], row["name"], row["lastName"]
-        logger.info({"event": "lookup_done", "status": "ok", "elapsed_ms": elapsed_ms, "phone_masked": masked, "zipcode": zipcode})
+        logger.info({"event": "lookup_done", "status": "ok", "phone_masked": masked, "zipcode": zipcode})
         return {"zipCode": zipcode, "firstName":firstName, "lastName":lastName, "success": True,"statusCode":200,"message":"User info lookup successful."}
 
     except Exception as e:
-        elapsed_ms = round((time.monotonic() - t0) * 1000, 1)
-        logger.error({"event": "lookup_error", "elapsed_ms": elapsed_ms, "phone_masked": masked, "error": str(e)})
+        logger.error({"event": "lookup_error", "phone_masked": masked, "error": str(e)})
         return make_response({"error": "lookup failed"}, 500)

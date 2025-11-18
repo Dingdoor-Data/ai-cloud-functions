@@ -1,0 +1,49 @@
+name: Publish dingdoor-utils-package to PyPI
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - "libs/dingdoor-utils-package/**"
+      - ".github/workflows/publish-pypi.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write   # REQUIRED for PyPI Trusted Publishing
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    enviroment:dingdoor-utils-package
+    defaults:
+      run:
+        working-directory: libs/dingdoor-utils-package
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fast build tool
+      - uses: astral-sh/setup-uv@v4:w
+        with:
+          enable-cache: true
+      # Build source+wheel into libs/dingdoor-utils-package/dist/
+      - name: Build package
+        run: uv build
+
+      # Optional: print version into job summary
+      - name: Show version
+        shell: bash
+        run: |
+          python - <<'PY'
+          import tomllib, pathlib
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          print(f"Version: {data['project']['version']}")
+          PY
+
+      # Publish to PyPI via OIDC (no API token)
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: libs/dingdoor-utils-package/dist
+          skip-existing: true
+
