@@ -2,7 +2,7 @@ name: Publish dingdoor-utils-package to PyPI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ development ]
     paths:
       - "libs/dingdoor-utils-package/**"
       - ".github/workflows/publish-pypi.yml"
