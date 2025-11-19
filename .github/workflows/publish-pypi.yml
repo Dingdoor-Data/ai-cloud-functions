@@ -15,7 +15,7 @@ permissions:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    enviroment:dingdoor-utils-package
+    enviroment: dingdoor-utils-package
     defaults:
       run:
         working-directory: libs/dingdoor-utils-package
