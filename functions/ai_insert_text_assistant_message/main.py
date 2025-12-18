@@ -150,6 +150,8 @@ def ai_insert_text_assistant_message(request):
                 meta = _upload_to_bucket(FILES_BUCKET, storage_path, blob_bytes, ctype)
                 attachments.append(meta)
 
+        #converting message to html
+        message_html = markdown.markdown(message)
         # save user message
         save_messages_to_firestore(
             db,
@@ -157,7 +159,7 @@ def ai_insert_text_assistant_message(request):
             role,
             msg_ref,
             msg_id,
-            message,
+            message_html,
             now_ms,
             event=event,
             event_data=event_data,
