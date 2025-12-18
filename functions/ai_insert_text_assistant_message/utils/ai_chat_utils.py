@@ -4,7 +4,7 @@ from google.cloud.firestore import Increment
 from datetime import datetime
 AI_ASSISTANT_CHATS = "aiAssistantChats"
 
-def update_chat_metadata(db, chat_id, last_message, message_count=2):
+def update_chat_metadata(db, chat_id, last_message, message_count=1):
     """
     Updates or creates the chat document metadata in Firestore.
     
