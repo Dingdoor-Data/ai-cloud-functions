@@ -55,7 +55,8 @@ def save_messages_to_firestore(db,messages_collection,role, user_message_ref,msg
         "attachments":attachments or [],
         "event":event or None,
         "eventData":event_data or {},
-        "isCxInteraction":True
+        "isCxInteraction":True,
+        "rate":0,
     }
     
     # Use a batch write for efficiency
