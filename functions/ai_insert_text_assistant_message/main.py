@@ -18,7 +18,7 @@ from utils.ai_chat_utils import update_chat_metadata, save_messages_to_firestore
 # ---- config ----
 FILES_BUCKET = os.getenv("FILES_BUCKET","text_assistant_uploads")  # e.g. "text_assistant_uploads" (optional)
 ROOT_COLLECTION = os.getenv("AI_ASSISTANT_MESSAGES_COLLECTION", "aiAssistantMessages")
-
+AI_ASSISTANT_CHATS = "aiAssistantChats"
 
 def add_cors(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"
@@ -87,14 +87,22 @@ def ai_insert_text_assistant_message(request):
             form = request.form
 
             conversation_id = form.get("conversationId") or form.get("id") or str(uuid.uuid4())
-            user_id = form.get("userId")
             role = (form.get("role") or "user").strip()
             message = form.get("message")
             event = form.get("event")
             event_data_raw = form.get("eventData")
             event_data = json.loads(event_data_raw) if event_data_raw else {}
+            
+            #fetching chat
+            chat_snap = db.collection(AI_ASSISTANT_CHATS).document(conversation_id).get()
+            if not chat_snap.exists:
+                return add_cors(make_response(json.dumps({"error": "Chat not found"}), 404))
+            chat_data = chat_snap.to_dict() or {}
+            user_id = chat_data.get("userId")
+            if not user_id:
+                return add_cors(make_response(json.dumps({"error": "Chat has no userId"}), 400))
 
-            if not user_id or not message or not conversation_id:
+            if not message or not conversation_id:
                 return add_cors(make_response(json.dumps({"error": "userId, message and id are required"}), 400))
 
             # Files: support either `files` repeated, or any file fields
@@ -118,13 +126,21 @@ def ai_insert_text_assistant_message(request):
 
             data = request.get_json(silent=True) or {}
             conversation_id = data.get("conversationId") or data.get("id") or str(uuid.uuid4())
-            user_id = data.get("userId")
             role = (data.get("role") or "user").strip()
             message = data.get("message")
             event = data.get("event")
             event_data_raw = data.get("eventData")
             event_data = json.loads(event_data_raw) if event_data_raw else {}
             file_list = []  # JSON mode: no files
+            
+            #fetching chat
+            chat_snap = db.collection(AI_ASSISTANT_CHATS).document(conversation_id).get()
+            if not chat_snap.exists:
+                return add_cors(make_response(json.dumps({"error": "Chat not found"}), 404))
+            chat_data = chat_snap.to_dict() or {}
+            user_id = chat_data.get("userId")
+            if not user_id:
+                return add_cors(make_response(json.dumps({"error": "Chat has no userId"}), 400))
 
             if not user_id or not message or not conversation_id:
                 return add_cors(make_response(json.dumps({"error": "userId and message are required"}), 400))
