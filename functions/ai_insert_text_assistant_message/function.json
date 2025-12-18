@@ -1,6 +1,6 @@
 {
   "name": "ai_insert_text_assistant_message",
-  "entrypoint": "http_lookup",
+  "entrypoint": "ai_insert_text_assistant_message",
   "trigger": "http",
   "region": "us-central1",
   "runtime": "python312", 
