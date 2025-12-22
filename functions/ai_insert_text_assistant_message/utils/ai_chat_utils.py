@@ -49,7 +49,7 @@ def save_messages_to_firestore(db,messages_collection,role, user_message_ref,msg
     # Create user message
     user_message_data = {
         "role":role,
-        "content":user_message,
+        "content":user_message if user_message else "",
         "timestamp":user_timestamp,
         "id":msg_id, 
         "attachments":attachments or [],

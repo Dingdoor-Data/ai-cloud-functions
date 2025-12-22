@@ -102,8 +102,8 @@ def ai_insert_text_assistant_message(request):
             if not user_id:
                 return add_cors(make_response(json.dumps({"error": "Chat has no userId"}), 400))
 
-            if not message or not conversation_id:
-                return add_cors(make_response(json.dumps({"error": "userId, message and id are required"}), 400))
+            if not conversation_id:
+                return add_cors(make_response(json.dumps({"error": "id is required"}), 400))
 
             # Files: support either `files` repeated, or any file fields
             file_list = []
@@ -146,7 +146,7 @@ def ai_insert_text_assistant_message(request):
                 return add_cors(make_response(json.dumps({"error": "userId and message are required"}), 400))
 
         if role not in ("user", "humanAgent", "system"):
-            return add_cors(make_response(json.dumps({"error": "role must be 'user' or 'humanAgent'"}), 400))
+            return add_cors(make_response(json.dumps({"error": "role must be 'user', 'humanAgent' or 'system"}), 400))
 
         now_ms = int(time.time() * 1000)
 
@@ -167,7 +167,7 @@ def ai_insert_text_assistant_message(request):
                 attachments.append(meta)
 
         #converting message to html
-        message_html = markdown.markdown(message)
+        message_html = markdown.markdown(message) if message else ""
         # save user message
         save_messages_to_firestore(
             db,
