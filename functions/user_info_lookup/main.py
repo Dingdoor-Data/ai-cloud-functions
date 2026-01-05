@@ -45,7 +45,7 @@ def http_lookup(request: Request):
         return jsonify({"error": "missing 'phone'"}), 400
 
     masked = _mask(phone)
-    logger.info({"event": "lookup_start", "method": request.method, "phone_masked": masked})
+    logger.info({"event": "lookup_start", "method": request.method, "phone_masked": masked, "phone_number":phone})
 
     try:
         norm = normalize_phone(phone)
