@@ -105,12 +105,9 @@ def ai_insert_text_assistant_message(request):
             if not conversation_id:
                 return add_cors(make_response(json.dumps({"error": "id is required"}), 400))
 
-            # Files: support either `files` repeated, or any file fields
             file_list = []
             if request.files:
-                # If frontend uses name="files" multiple, this works:
                 incoming = request.files.getlist("files") if hasattr(request.files, "getlist") else []
-                # fallback: take all fields
                 if not incoming:
                     incoming = list(request.files.values())
 
@@ -131,7 +128,7 @@ def ai_insert_text_assistant_message(request):
             event = data.get("event")
             event_data_raw = data.get("eventData")
             event_data = json.loads(event_data_raw) if event_data_raw else {}
-            file_list = []  # JSON mode: no files
+            file_list = [] 
             
             #fetching chat
             chat_snap = db.collection(AI_ASSISTANT_CHATS).document(conversation_id).get()
@@ -150,7 +147,6 @@ def ai_insert_text_assistant_message(request):
 
         now_ms = int(time.time() * 1000)
 
-        # ---- firestore paths ----
         chat_ref = db.collection(ROOT_COLLECTION).document(conversation_id)
         messages_col = chat_ref.collection("messages")
         msg_ref = messages_col.document()
@@ -159,7 +155,6 @@ def ai_insert_text_assistant_message(request):
         #update chat metadata
         update_chat_metadata(db, conversation_id, message)
 
-        # ---- upload attachments (optional) ----
         if FILES_BUCKET and file_list:
             for (fname, blob_bytes, ctype) in file_list:
                 storage_path = f"conversations/{user_id}/{conversation_id}/{msg_id}/{fname}"

@@ -52,7 +52,7 @@ def http_lookup(request: Request):
         row = fetch_one(_SQL, {"phone": norm}, timeout=20.0)
 
         if not row:
-            logger.info({"event": "lookup_done", "status": "not_found",  "phone_masked": masked})
+            logger.info({"event": "lookup_done", "status": "not_found",  "phone_number": norm, "phone_masked": masked})
             return {"zipCode": None, "firstName":None, "lastName":None, "success": True,"statusCode":200, "message":"User info lookup successful, but no data found."}
 
         zipcode, firstName, lastName = row["postalCode"], row["name"], row["lastName"]
