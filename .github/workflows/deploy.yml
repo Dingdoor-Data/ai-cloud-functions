@@ -28,17 +28,6 @@ jobs:
         shell: bash
         run: |
           BRANCH="${{ github.ref_name }}"
-          ENV_FILE="$DIR/env.dev.yaml"
-          if [ "$BRANCH" = "master" ]; then
-            ENV_FILE="$DIR/env.prod.yaml"
-          fi
-
-          # fail fast if env file is missing recommend each function have one
-          if [ ! -f "$ENV_FILE" ]; then
-            echo "Missing env file: $ENV_FILE" >&2
-            exit 1
-          fi
-
           # Deploy CHANGED functions on master
           BASE="${{ github.event.before }}"
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
@@ -84,11 +73,22 @@ jobs:
         run: |
           set -euo pipefail
           DIR="${{ matrix.dir }}"
+          BRANCH="${{ github.ref_name }}"
           NAME=$(jq -r .name "$DIR/function.json")
           ENTRY=$(jq -r .entrypoint "$DIR/function.json")
           RUNTIME=$(jq -r .runtime "$DIR/function.json")   # e.g. "python312"
           TRIGGER=$(jq -r .trigger "$DIR/function.json")
           AUTH=$(jq -r .allow_unauthenticated "$DIR/function.json")
+          
+          ENV_FILE="$DIR/.env.dev.yaml"
+          if [ "$BRANCH" = "master" ]; then
+            ENV_FILE="$DIR/.env.prod.yaml"
+          fi
+
+          if [ ! -f "$ENV_FILE" ]; then
+            echo "Missing env file: $ENV_FILE" >&2
+            exit 1
+          fi
 
           if [ "$TRIGGER" = "http" ]; then
             UA=""
@@ -123,7 +123,7 @@ jobs:
               --entry-point "$ENTRY" \
               --trigger-event-filters=type=google.cloud.firestore.document.v1.written \
               --trigger-event-filters=database="$DB" \
-              --trigger-event-filters-path-pattern=document="$PATTERN"
+              --trigger-event-filters-path-pattern=document="$PATTERN" \
               --env-vars-file "$ENV_FILE"
           else
             echo "Unknown trigger in $DIR/function.json" >&2
