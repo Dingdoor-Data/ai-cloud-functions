@@ -80,9 +80,9 @@ jobs:
           TRIGGER=$(jq -r .trigger "$DIR/function.json")
           AUTH=$(jq -r .allow_unauthenticated "$DIR/function.json")
           
-          ENV_FILE="$DIR/.env.dev.yaml"
+          ENV_FILE="$DIR/env.dev.yaml"
           if [ "$BRANCH" = "master" ]; then
-            ENV_FILE="$DIR/.env.prod.yaml"
+            ENV_FILE="$DIR/env.prod.yaml"
           fi
 
           if [ ! -f "$ENV_FILE" ]; then

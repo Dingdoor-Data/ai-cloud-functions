@@ -9,6 +9,8 @@ from dingdoor_utils_package import fetch_one
 from utils.phone import normalize_phone
 
 load_dotenv()
+
+#loading env vars
 env = os.getenv("ENV", "DEV")
 
 
