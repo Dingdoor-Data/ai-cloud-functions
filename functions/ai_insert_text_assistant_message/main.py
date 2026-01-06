@@ -16,7 +16,7 @@ from utils.ai_chat_utils import update_chat_metadata, save_messages_to_firestore
 
 
 # ---- config ----
-FILES_BUCKET = os.getenv("FILES_BUCKET")  # e.g. "text_assistant_uploads" (optional)
+FILES_BUCKET = os.getenv("FILES_BUCKET")
 ROOT_COLLECTION = os.getenv("AI_ASSISTANT_MESSAGES_COLLECTION", "aiAssistantMessages")
 AI_ASSISTANT_CHATS = "aiAssistantChats"
 

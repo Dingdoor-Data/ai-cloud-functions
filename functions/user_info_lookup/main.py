@@ -48,6 +48,7 @@ def http_lookup(request: Request):
 
     try:
         norm = normalize_phone(phone)
+        # dev enviroment using mock data
         if env == "DEV":
             row = {
                 "postalCode": "33126",
