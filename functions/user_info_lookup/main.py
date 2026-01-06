@@ -44,21 +44,20 @@ def http_lookup(request: Request):
     if not phone:
         return jsonify({"error": "missing 'phone'"}), 400
 
-    masked = _mask(phone)
-    logger.info({"event": "lookup_start", "method": request.method, "phone_masked": masked, "phone_number":phone})
+    logger.info({"event": "lookup_start", "method": request.method, "phone_number":phone})
 
     try:
         norm = normalize_phone(phone)
         row = fetch_one(_SQL, {"phone": norm}, timeout=20.0)
 
         if not row:
-            logger.info({"event": "lookup_done", "status": "not_found",  "phone_number": norm, "phone_masked": masked})
+            logger.info({"event": "lookup_done", "status": "not_found",  "phone_number": norm})
             return {"zipCode": None, "firstName":None, "lastName":None, "success": True,"statusCode":200, "message":"User info lookup successful, but no data found."}
 
         zipcode, firstName, lastName = row["postalCode"], row["name"], row["lastName"]
-        logger.info({"event": "lookup_done", "status": "ok", "phone_masked": masked, "zipcode": zipcode})
+        logger.info({"event": "lookup_done", "status": "ok", "zipcode": zipcode})
         return {"zipCode": zipcode, "firstName":firstName, "lastName":lastName, "success": True,"statusCode":200,"message":"User info lookup successful."}
 
     except Exception as e:
-        logger.error({"event": "lookup_error", "phone_masked": masked, "error": str(e)})
+        logger.error({"event": "lookup_error", "phone_number": norm, "error": str(e)})
         return make_response({"error": "lookup failed"}, 500)
