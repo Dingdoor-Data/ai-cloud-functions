@@ -28,6 +28,17 @@ jobs:
         shell: bash
         run: |
           BRANCH="${{ github.ref_name }}"
+          ENV_FILE="$DIR/env.dev.yaml"
+          if [ "$BRANCH" = "master" ]; then
+            ENV_FILE="$DIR/env.prod.yaml"
+          fi
+
+          # fail fast if env file is missing recommend each function have one
+          if [ ! -f "$ENV_FILE" ]; then
+            echo "Missing env file: $ENV_FILE" >&2
+            exit 1
+          fi
+
           # Deploy CHANGED functions on master
           BASE="${{ github.event.before }}"
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
@@ -91,7 +102,8 @@ jobs:
               --source "$DIR" \
               --entry-point "$ENTRY" \
               --trigger-http \
-              $UA
+              $UA \
+              --env-vars-file "$ENV_FILE"
 
             URL=$(gcloud functions describe "$NAME" --gen2 --region "$REGION" \
               --format='value(serviceConfig.uri)')
@@ -112,7 +124,7 @@ jobs:
               --trigger-event-filters=type=google.cloud.firestore.document.v1.written \
               --trigger-event-filters=database="$DB" \
               --trigger-event-filters-path-pattern=document="$PATTERN"
-
+              --env-vars-file "$ENV_FILE"
           else
             echo "Unknown trigger in $DIR/function.json" >&2
             exit 1

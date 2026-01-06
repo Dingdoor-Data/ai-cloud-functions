@@ -16,7 +16,7 @@ from utils.ai_chat_utils import update_chat_metadata, save_messages_to_firestore
 
 
 # ---- config ----
-FILES_BUCKET = os.getenv("FILES_BUCKET","text_assistant_uploads")  # e.g. "text_assistant_uploads" (optional)
+FILES_BUCKET = os.getenv("FILES_BUCKET")  # e.g. "text_assistant_uploads" (optional)
 ROOT_COLLECTION = os.getenv("AI_ASSISTANT_MESSAGES_COLLECTION", "aiAssistantMessages")
 AI_ASSISTANT_CHATS = "aiAssistantChats"
 
@@ -43,7 +43,7 @@ def _upload_to_bucket(bucket_name: str, blob_path: str, data: bytes, content_typ
 
     preview_url = None
     try:
-        signer_email = os.getenv("SIGNED_URL_SA_EMAIL","675741190048-compute@developer.gserviceaccount.com")
+        signer_email = os.getenv("SIGNED_URL_SA_EMAIL")
         # IMPORTANT: request a token with the right scopes for IAMCredentials.signBlob
         scopes = ["https://www.googleapis.com/auth/cloud-platform"]  # or "https://www.googleapis.com/auth/iam"
         creds, _ = google.auth.default(scopes=scopes)
