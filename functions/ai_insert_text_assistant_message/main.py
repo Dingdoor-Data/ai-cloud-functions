@@ -55,7 +55,7 @@ def _upload_to_bucket(bucket_name: str, blob_path: str, data: bytes, content_typ
             expiration=timedelta(hours=int(os.getenv("SIGNED_URL_EXPIRES_HOURS", "72"))),
             method="GET",
             service_account_email=signer_email,
-            access_token=access_token,  # forces IAM-backed signing (no local key)
+            access_token=access_token,
         )
     except Exception as e:
         logging.warning(f"Could not generate signed URL for {blob_path}: {e}")
