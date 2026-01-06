@@ -14,11 +14,6 @@ if not logger.handlers:
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
 
-def _mask(phone: str) -> str:
-    d = re.sub(r"\D", "", phone or "")
-    tail = d[-4:] if len(d) >= 4 else d
-    return f"...{tail}"
-
 _SQL = """
 WITH ranked AS (
   SELECT pl.postalCode, p.phoneNumber, p.email, k.createdAt, p.name, p.lastName,
