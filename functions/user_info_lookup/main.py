@@ -1,11 +1,18 @@
 import logging
-import re
+import os
+from dotenv import load_dotenv
 from flask import Request, jsonify, make_response
 from functions_framework import http
 from google.cloud.logging_v2.handlers import StructuredLogHandler
 
 from dingdoor_utils_package import fetch_one
 from utils.phone import normalize_phone
+
+load_dotenv()
+
+#loading env vars
+env = os.getenv("ENV", "DEV")
+
 
 # ------------- logging (structured -> Cloud Logging) -----------------
 logger = logging.getLogger("user_info_lookup")
@@ -43,7 +50,15 @@ def http_lookup(request: Request):
 
     try:
         norm = normalize_phone(phone)
-        row = fetch_one(_SQL, {"phone": norm}, timeout=20.0)
+        # dev enviroment using mock data
+        if env == "DEV":
+            row = {
+                "postalCode": "33126",
+                "name": "John",
+                "lastName": "Doe"
+            }
+        else:
+            row = fetch_one(_SQL, {"phone": norm}, timeout=20.0)
 
         if not row:
             logger.info({"event": "lookup_done", "status": "not_found",  "phone_number": norm})

@@ -3,3 +3,4 @@ google-cloud-bigquery>=3.20.0,<4
 google-cloud-logging>=3.10.0
 pydantic>=2.8,<3
 dingdoor-utils-package==0.1.0
+python-dotenv
