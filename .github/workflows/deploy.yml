@@ -27,17 +27,24 @@ jobs:
         name: Select functions to deploy
         shell: bash
         run: |
-          BRANCH="${{ github.ref_name }}"
-          # Deploy CHANGED functions on master
+          set -euo pipefail
+
           BASE="${{ github.event.before }}"
-          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            BASE="$(git rev-parse HEAD^ || true)"
-          fi
           HEAD="${{ github.sha }}"
+
+          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "BASE sha not found (likely force-push). Falling back to HEAD^."
+            BASE="$(git rev-parse "$HEAD^" 2>/dev/null || true)"
+          fi
+
+          if [ -z "${BASE:-}" ]; then
+            BASE="$HEAD"
+          fi
+
           git diff --name-only "$BASE" "$HEAD" \
             | awk -F/ '/^functions\/[^/]+\//{print $1"/"$2}' \
             | sort -u > changed.txt
-          
+
           jq -Rsc 'split("\n")|map(select(length>0))' changed.txt > dirs.json
           echo "dirs=$(cat dirs.json)" >> "$GITHUB_OUTPUT"
 
