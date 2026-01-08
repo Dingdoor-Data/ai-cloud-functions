@@ -1,0 +1,9 @@
+{
+  "name": "eleven_labs_post_call",
+  "entrypoint": "elevenlabs_post_call_webhook",
+  "trigger": "http",
+  "region": "us-central1",
+  "runtime": "python312", 
+  "base_image": "python313",
+  "allow_unauthenticated": true
+}
