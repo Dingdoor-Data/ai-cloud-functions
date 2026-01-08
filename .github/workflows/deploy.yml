@@ -87,6 +87,14 @@ jobs:
           TRIGGER=$(jq -r .trigger "$DIR/function.json")
           AUTH=$(jq -r .allow_unauthenticated "$DIR/function.json")
           
+          # Read secrets mapping if present (optional)
+          SECRETS=$(jq -r '.secrets // {} | to_entries | map("\(.key)=\(.value)") | join(",")' "$DIR/function.json")
+          SECRETS_ARGS=()
+          if [ -n "$SECRETS" ]; then
+            # non-destructive: updates/sets only listed secrets
+            SECRETS_ARGS=(--update-secrets "$SECRETS")
+          fi
+
           ENV_FILE="$DIR/env.dev.yaml"
           if [ "$BRANCH" = "master" ]; then
             ENV_FILE="$DIR/env.prod.yaml"
@@ -110,7 +118,8 @@ jobs:
               --entry-point "$ENTRY" \
               --trigger-http \
               $UA \
-              --env-vars-file "$ENV_FILE"
+              --env-vars-file "$ENV_FILE" \
+              "${SECRETS_ARGS[@]}"
 
             URL=$(gcloud functions describe "$NAME" --gen2 --region "$REGION" \
               --format='value(serviceConfig.uri)')
@@ -131,7 +140,9 @@ jobs:
               --trigger-event-filters=type=google.cloud.firestore.document.v1.written \
               --trigger-event-filters=database="$DB" \
               --trigger-event-filters-path-pattern=document="$PATTERN" \
-              --env-vars-file "$ENV_FILE"
+              --env-vars-file "$ENV_FILE" \
+              "${SECRETS_ARGS[@]}"
+              
           else
             echo "Unknown trigger in $DIR/function.json" >&2
             exit 1

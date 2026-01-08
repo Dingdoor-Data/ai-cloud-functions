@@ -5,5 +5,8 @@
   "region": "us-central1",
   "runtime": "python312", 
   "base_image": "python313",
-  "allow_unauthenticated": true
+  "allow_unauthenticated": true,
+  "secrets":{
+    "ELEVENLABS_WEBHOOK_SECRET": "ELEVENLABS_WEBHOOK_SECRET:latest"
+  }
 }
