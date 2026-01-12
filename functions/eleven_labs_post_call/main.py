@@ -75,8 +75,9 @@ def _build_tools_summary(transcript):
 
         tools.append(
             {
-                "tool_name": tool_name,
+                "toolName": tool_name,
                 "result": summary,
+                "isError": is_error,
             }
         )
 
@@ -128,8 +129,9 @@ def elevenlabs_post_call_webhook(req: https_fn.Request) -> https_fn.Response:
     event_type = payload.get("type")
     event_ts = payload.get("event_timestamp")
     data = payload.get("data", {}) or {}
-    transcript = data.get("transcript") or []
-    tools = _build_tools_summary(transcript)
+    transcript_turns = data.get("transcript") or []
+    tools = _build_tools_summary(transcript_turns)
+    transcript_summary = ((data.get("analysis") or {}).get("transcript_summary"))
 
     # Recommended: stable id for idempotency
     conversation_id = data.get("conversation_id") or data.get("conversationId")
@@ -139,17 +141,15 @@ def elevenlabs_post_call_webhook(req: https_fn.Request) -> https_fn.Response:
     # Store full transcript only if you’re sure it won’t exceed limits.
     call_doc = {
         "type": event_type,
-        "event_timestamp": event_ts,
-        "agent_id": data.get("agent_id"),
-        "conversation_id": conversation_id,
+        "createdAt": event_ts,
+        "agentId": data.get("agent_id"),
+        "conversationId": conversation_id,
         "status": data.get("status"),
         "metadata": data.get("metadata", {}),
-        "call_duration_secs": (data.get("metadata", {}) or {}).get("call_duration_secs"),
+        "callDurationSecs": (data.get("metadata", {}) or {}).get("call_duration_secs"),
         "cost": (data.get("metadata", {}) or {}).get("cost"),
-        "transcript": transcript,
-        "tools": tools,
-        "created_at": firestore.SERVER_TIMESTAMP,
-        "raw": payload,  # optionally remove this if size becomes an issue
+        "transcript": transcript_summary,
+        "tools": tools
     }
 
     db.collection(ai_post_call_collection).document(doc_id).set(call_doc, merge=True)
