@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 import json
+import uuid
 import time
 import hmac
 from hashlib import sha256
@@ -13,7 +14,15 @@ db = firestore.client()
 
 ai_post_call_collection = os.environ.get("AI_ASSISTANT_CALLS_COLLECTION", "aiAgentCalls")
 ELEVENLABS_WEBHOOK_SECRET = os.environ.get("ELEVENLABS_WEBHOOK_SECRET", "")
-SIGNATURE_TOLERANCE_SECS = 30 * 60  # 30 minutes (matches ElevenLabs example idea)
+SIGNATURE_TOLERANCE_SECS = 30 * 60
+
+def _extract_tooling_from_transcript(transcript):
+    tool_calls = []
+    tool_results = []
+    for turn in transcript or []:
+        tool_calls.extend(turn.get("tool_calls", []) or [])
+        tool_results.extend(turn.get("tool_results", []) or [])
+    return tool_calls, tool_results
 
 def _verify_elevenlabs_signature(raw_body: bytes, signature_header: str) -> bool:
     """
@@ -61,10 +70,12 @@ def elevenlabs_post_call_webhook(req: https_fn.Request) -> https_fn.Response:
     event_type = payload.get("type")
     event_ts = payload.get("event_timestamp")
     data = payload.get("data", {}) or {}
+    transcript = data.get("transcript") or []
+    tool_calls, tool_results = _extract_tooling_from_transcript(transcript)
 
     # Recommended: stable id for idempotency
     conversation_id = data.get("conversation_id") or data.get("conversationId")
-    doc_id = conversation_id or f"{event_type}_{event_ts}"
+    doc_id = str(uuid.uuid4())
 
     # Keep the stored document reasonably small (Firestore doc limit is 1MB).
     # Store full transcript only if you’re sure it won’t exceed limits.
@@ -77,9 +88,12 @@ def elevenlabs_post_call_webhook(req: https_fn.Request) -> https_fn.Response:
         "metadata": data.get("metadata", {}),
         "call_duration_secs": (data.get("metadata", {}) or {}).get("call_duration_secs"),
         "cost": (data.get("metadata", {}) or {}).get("cost"),
+        "transcript": transcript,
+        "tool_calls": tool_calls,
+        "tool_results": tool_results,
         "created_at": firestore.SERVER_TIMESTAMP,
         "raw": payload,  # optionally remove this if size becomes an issue
     }
 
-    db.collection("agent_calls").document(doc_id).set(call_doc, merge=True)
+    db.collection(ai_post_call_collection).document(doc_id).set(call_doc, merge=True)
     return https_fn.Response("ok", status=200)
