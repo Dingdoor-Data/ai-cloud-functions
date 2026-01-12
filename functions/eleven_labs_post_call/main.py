@@ -16,13 +16,71 @@ ai_post_call_collection = os.environ.get("AI_ASSISTANT_CALLS_COLLECTION", "aiAge
 ELEVENLABS_WEBHOOK_SECRET = os.environ.get("ELEVENLABS_WEBHOOK_SECRET", "")
 SIGNATURE_TOLERANCE_SECS = 30 * 60
 
-def _extract_tooling_from_transcript(transcript):
-    tool_calls = []
+def _safe_json_loads(value):
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        return None
+
+def _build_tools_summary(transcript):
     tool_results = []
     for turn in transcript or []:
-        tool_calls.extend(turn.get("tool_calls", []) or [])
         tool_results.extend(turn.get("tool_results", []) or [])
-    return tool_calls, tool_results
+
+    tools = []
+    for idx, result in enumerate(tool_results):
+        tool_name = result.get("tool_name")
+        parsed_value = _safe_json_loads(result.get("result_value"))
+        is_error = result.get("is_error") is True
+
+        summary = None
+        if idx == 0:
+            summary = {
+                "zipCode": None,
+                "status": None,
+            }
+            if not is_error and isinstance(parsed_value, dict):
+                summary["zipCode"] = parsed_value.get("zipCode")
+                summary["status"] = parsed_value.get("status") or (
+                    "success" if parsed_value.get("success") else None
+                )
+        elif idx == 1:
+            summary = {
+                "status": None,
+                "data": {
+                    "inferredCategory": None,
+                    "summary": None,
+                },
+            }
+            if not is_error and isinstance(parsed_value, dict):
+                summary["status"] = parsed_value.get("status")
+                data = parsed_value.get("data") or {}
+                summary["data"]["inferredCategory"] = data.get("inferredCategory")
+                summary["data"]["summary"] = data.get("summary")
+        elif idx == 2:
+            summary = {
+                "status": None,
+                "message": None,
+                "data": {
+                    "knockId": None,
+                },
+            }
+            if not is_error and isinstance(parsed_value, dict):
+                summary["status"] = parsed_value.get("status")
+                summary["message"] = parsed_value.get("message")
+                data = parsed_value.get("data") or {}
+                summary["data"]["knockId"] = data.get("knockId")
+
+        tools.append(
+            {
+                "tool_name": tool_name,
+                "result": summary,
+            }
+        )
+
+    return tools
 
 def _verify_elevenlabs_signature(raw_body: bytes, signature_header: str) -> bool:
     """
@@ -71,7 +129,7 @@ def elevenlabs_post_call_webhook(req: https_fn.Request) -> https_fn.Response:
     event_ts = payload.get("event_timestamp")
     data = payload.get("data", {}) or {}
     transcript = data.get("transcript") or []
-    tool_calls, tool_results = _extract_tooling_from_transcript(transcript)
+    tools = _build_tools_summary(transcript)
 
     # Recommended: stable id for idempotency
     conversation_id = data.get("conversation_id") or data.get("conversationId")
@@ -89,8 +147,7 @@ def elevenlabs_post_call_webhook(req: https_fn.Request) -> https_fn.Response:
         "call_duration_secs": (data.get("metadata", {}) or {}).get("call_duration_secs"),
         "cost": (data.get("metadata", {}) or {}).get("cost"),
         "transcript": transcript,
-        "tool_calls": tool_calls,
-        "tool_results": tool_results,
+        "tools": tools,
         "created_at": firestore.SERVER_TIMESTAMP,
         "raw": payload,  # optionally remove this if size becomes an issue
     }
