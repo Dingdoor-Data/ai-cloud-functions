@@ -15,6 +15,8 @@ db = firestore.client()
 ai_post_call_collection = os.environ.get("AI_ASSISTANT_CALLS_COLLECTION", "aiAgentCalls")
 ELEVENLABS_WEBHOOK_SECRET = os.environ.get("ELEVENLABS_WEBHOOK_SECRET", "")
 SIGNATURE_TOLERANCE_SECS = 30 * 60
+agents_name = {"agent_9901k842j39ke5q8xbfzfr19jn4g":"Dev Agent ES",}
+
 
 def _safe_json_loads(value):
     if not value or not isinstance(value, str):
@@ -140,9 +142,9 @@ def elevenlabs_post_call_webhook(req: https_fn.Request) -> https_fn.Response:
         "type": event_type,
         "createdAt": event_ts,
         "agentId": data.get("agent_id"),
+        "agentName": agents_name.get(data.get("agent_id"),""),
         "conversationId": conversation_id,
         "status": data.get("status"),
-        "metadata": data.get("metadata", {}),
         "userNumber": phone_call.get("external_number"),
         "callDurationSecs": (data.get("metadata", {}) or {}).get("call_duration_secs"),
         "cost": (data.get("metadata", {}) or {}).get("cost"),
