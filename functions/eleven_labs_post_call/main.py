@@ -97,7 +97,6 @@ def _verify_elevenlabs_signature(raw_body: bytes, signature_header: str) -> bool
     if not timestamp or not provided_hash:
         return False
 
-    # Timestamp check
     now = int(time.time())
     ts = int(timestamp)
     if ts < (now - SIGNATURE_TOLERANCE_SECS) or ts > (now + 60):
@@ -117,7 +116,7 @@ def elevenlabs_post_call_webhook(req: https_fn.Request) -> https_fn.Response:
     if req.method != "POST":
         return https_fn.Response("Method Not Allowed", status=405)
 
-    raw_body = req.get_data()  # bytes
+    raw_body = req.get_data()  
     sig = req.headers.get("elevenlabs-signature") or req.headers.get("ElevenLabs-Signature")
     if not _verify_elevenlabs_signature(raw_body, sig):
         return https_fn.Response("Unauthorized", status=401)
@@ -133,12 +132,10 @@ def elevenlabs_post_call_webhook(req: https_fn.Request) -> https_fn.Response:
     tools = _build_tools_summary(transcript_turns)
     transcript_summary = ((data.get("analysis") or {}).get("transcript_summary"))
 
-    # Recommended: stable id for idempotency
     conversation_id = data.get("conversation_id") or data.get("conversationId")
     doc_id = str(uuid.uuid4())
 
-    # Keep the stored document reasonably small (Firestore doc limit is 1MB).
-    # Store full transcript only if you’re sure it won’t exceed limits.
+    phone_call = (data.get("metadata", {}) or {}).get("phone_call") or {}
     call_doc = {
         "type": event_type,
         "createdAt": event_ts,
@@ -146,6 +143,7 @@ def elevenlabs_post_call_webhook(req: https_fn.Request) -> https_fn.Response:
         "conversationId": conversation_id,
         "status": data.get("status"),
         "metadata": data.get("metadata", {}),
+        "userNumber": phone_call.get("external_number"),
         "callDurationSecs": (data.get("metadata", {}) or {}).get("call_duration_secs"),
         "cost": (data.get("metadata", {}) or {}).get("cost"),
         "transcript": transcript_summary,
