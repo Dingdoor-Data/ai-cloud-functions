@@ -32,7 +32,7 @@ def _build_tools_summary(transcript):
         tool_results.extend(turn.get("tool_results", []) or [])
 
     tools = []
-    for idx, result in range(0,3):
+    for idx, result in enumerate(tool_results[:3]):
         tool_name = result.get("tool_name")
         parsed_value = _safe_json_loads(result.get("result_value"))
         is_error = result.get("is_error") is True
