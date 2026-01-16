@@ -1,89 +1,19 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
-import json
 import uuid
 import time
+import json
 import hmac
 from hashlib import sha256
 from firebase_functions import https_fn
 from firebase_admin import initialize_app, firestore
+from utils import agents_name
+from services import _build_tools_summary
+from config import ELEVENLABS_WEBHOOK_SECRET, SIGNATURE_TOLERANCE_SECS, ai_post_call_collection
 
 initialize_app()
 db = firestore.client()
-
-ai_post_call_collection = os.environ.get("AI_ASSISTANT_CALLS_COLLECTION", "aiAgentCalls")
-ELEVENLABS_WEBHOOK_SECRET = os.environ.get("ELEVENLABS_WEBHOOK_SECRET", "")
-SIGNATURE_TOLERANCE_SECS = 30 * 60
-agents_name = {"agent_9901k842j39ke5q8xbfzfr19jn4g":"Dev Agent ES",}
-
-
-def _safe_json_loads(value):
-    if not value or not isinstance(value, str):
-        return None
-    try:
-        return json.loads(value)
-    except json.JSONDecodeError:
-        return None
-
-def _build_tools_summary(transcript):
-    tool_results = []
-    for turn in transcript or []:
-        tool_results.extend(turn.get("tool_results", []) or [])
-
-    tools = []
-    for idx, result in enumerate(tool_results[:3]):
-        tool_name = result.get("tool_name")
-        parsed_value = _safe_json_loads(result.get("result_value"))
-        is_error = result.get("is_error") is True
-
-        summary = None
-        if idx == 0:
-            summary = {
-                "zipCode": None,
-                "status": None,
-            }
-            if not is_error and isinstance(parsed_value, dict):
-                summary["zipCode"] = parsed_value.get("zipCode")
-                summary["status"] = parsed_value.get("status") or (
-                    "success" if parsed_value.get("success") else None
-                )
-        elif idx == 1:
-            summary = {
-                "status": None,
-                "data": {
-                    "inferredCategory": None,
-                    "summary": None,
-                },
-            }
-            if not is_error and isinstance(parsed_value, dict):
-                summary["status"] = parsed_value.get("status")
-                data = parsed_value.get("data") or {}
-                summary["data"]["inferredCategory"] = data.get("inferredCategory")
-                summary["data"]["summary"] = data.get("summary")
-        elif idx == 2:
-            summary = {
-                "status": None,
-                "message": None,
-                "data": {
-                    "knockId": None,
-                },
-            }
-            if not is_error and isinstance(parsed_value, dict):
-                summary["status"] = parsed_value.get("status")
-                summary["message"] = parsed_value.get("message")
-                data = parsed_value.get("data") or {}
-                summary["data"]["knockId"] = data.get("knockId")
-
-        tools.append(
-            {
-                "toolName": tool_name,
-                "result": summary,
-                "isError": is_error,
-            }
-        )
-
-    return tools
 
 def _verify_elevenlabs_signature(raw_body: bytes, signature_header: str) -> bool:
     """
