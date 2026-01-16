@@ -9,8 +9,12 @@ from hashlib import sha256
 from firebase_functions import https_fn
 from firebase_admin import initialize_app, firestore
 from utils import agents_name
-from services import _build_tools_summary
-from config import ELEVENLABS_WEBHOOK_SECRET, SIGNATURE_TOLERANCE_SECS, ai_post_call_collection
+from services.agents_services import _build_tools_summary
+from config.config import (
+    ELEVENLABS_WEBHOOK_SECRET,
+    SIGNATURE_TOLERANCE_SECS,
+    ai_post_call_collection,
+)
 
 initialize_app()
 db = firestore.client()
