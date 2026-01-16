@@ -8,7 +8,7 @@ import hmac
 from hashlib import sha256
 from firebase_functions import https_fn
 from firebase_admin import initialize_app, firestore
-from utils import agents_name
+from utils.agents_name import agents_name
 from services.agents_services import _build_tools_summary
 from config.config import (
     ELEVENLABS_WEBHOOK_SECRET,
