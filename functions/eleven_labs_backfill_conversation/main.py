@@ -117,7 +117,10 @@ def elevenlabs_backfill_conversations(req: https_fn.Request) -> https_fn.Respons
                     phone_call = (full.get("metadata", {}) or {}).get("phone_call") or {}
 
                     # store unix seconds like 1769617330
-                    created_at = full.get("start_time_unix_secs")
+                    created_at = (
+                        full.get("start_time_unix_secs")
+                        or (full.get("metadata") or {}).get("start_time_unix_secs")
+                    )
                     created_at = int(created_at) if created_at is not None else None
 
                     call_doc = {
