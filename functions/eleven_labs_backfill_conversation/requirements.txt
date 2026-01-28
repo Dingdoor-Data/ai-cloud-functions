@@ -1,3 +1,4 @@
 firebase-functions==0.5.0
 firebase-admin==7.1.0
 python-dotenv
+requests==2.32.3
