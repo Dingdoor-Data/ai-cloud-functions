@@ -1,9 +1,7 @@
-import os
-from dotenv import load_dotenv
-load_dotenv()
 import time
 import requests
 from firebase_functions import https_fn
+import uuid
 from firebase_admin import initialize_app, firestore
 from utils.agents_name import agents_name
 from services.agents_services import _build_tools_summary
@@ -73,9 +71,9 @@ def elevenlabs_backfill_conversations(req: https_fn.Request) -> https_fn.Respons
                 conversation_id = item.get("conversation_id") or item.get("conversationId")
                 if not conversation_id:
                     continue
-
+                doc_id = str(uuid.uuid4())
                 # SAME collection; doc id = conversation_id (so webhook/backfill can’t duplicate)
-                doc_ref = db.collection(ai_post_call_collection).document(conversation_id)
+                doc_ref = db.collection(ai_post_call_collection).document(doc_id)
                 if doc_ref.get().exists:
                     skipped_existing += 1
                     continue
@@ -90,9 +88,9 @@ def elevenlabs_backfill_conversations(req: https_fn.Request) -> https_fn.Respons
 
                 call_doc = {
                     "type": "backfill",
-                    "createdAt": full.get("event_timestamp") or full.get("start_time_unix_secs"),
+                    "createdAt": full.get("event_timestamp"),
                     "agentId": full.get("agent_id"),
-                    "agentName": full.get("agent_name") or agents_name.get(full.get("agent_id"), ""),
+                    "agentName": agents_name.get(full.get("agent_id"),""),
                     "conversationId": conversation_id,
                     "status": full.get("status"),
                     "userNumber": phone_call.get("external_number"),
