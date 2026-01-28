@@ -4,11 +4,12 @@ load_dotenv()
 import time
 import requests
 from firebase_functions import https_fn
-from firebase_admin import firestore
+from firebase_admin import initialize_app, firestore
 from utils.agents_name import agents_name
 from services.agents_services import _build_tools_summary
 from config.config import ai_post_call_collection,ELEVENLABS_API_KEY, BACKFILL_SECRET, DEFAULT_AGENT_IDS
 
+initialize_app()
 db = firestore.client()
 
 BASE = "https://api.elevenlabs.io"
