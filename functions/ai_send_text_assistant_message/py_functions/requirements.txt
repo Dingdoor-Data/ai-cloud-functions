@@ -1,0 +1,13 @@
+firebase-functions~=0.1.0
+firebase-admin>=6.2.0
+pydantic>=2.0.0
+python-dotenv~=1.0.0
+markdown
+pandas==2.3.0
+pandas-gbq==0.29.1
+google-cloud-storage==3.1.0
+google-cloud-bigquery==3.34.0
+google-cloud==0.34.0
+redis==6.2.0
+firebase
+functions-framework
