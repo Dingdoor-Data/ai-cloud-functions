@@ -10,7 +10,8 @@ Python Cloud Functions, Functions Framework, Firebase Emulator, GitHub Actions
 functions/ai_insert_text_assistant_message/main.py and functions/user_info_lookup/main.py
 
 ## Key Files
-- functions/*/function.json: deploy metadata
+- functions/*/function.json: deploy metadata. You can also add secrets in this part of the functions.
+- functions/*/env.dev.yaml or env.prod.yaml: contains ENV VARS for each enviroment.
 - functions/ai_insert_text_assistant_message/main.py: chat message ingestion + optional file uploads
 - functions/user_info_lookup/main.py: phone-to-user lookup
 - .github/workflows/deploy.yml: changed-functions deployment pipeline

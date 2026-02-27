@@ -49,6 +49,7 @@ def _verify_elevenlabs_signature(raw_body: bytes, signature_header: str) -> bool
 
 @https_fn.on_request()
 def elevenlabs_post_call_webhook(req: https_fn.Request) -> https_fn.Response:
+    
     if req.method != "POST":
         return https_fn.Response("Method Not Allowed", status=405)
 
