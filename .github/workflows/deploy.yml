@@ -27,17 +27,24 @@ jobs:
         name: Select functions to deploy
         shell: bash
         run: |
-          BRANCH="${{ github.ref_name }}"
-          # Deploy CHANGED functions on master
+          set -euo pipefail
+
           BASE="${{ github.event.before }}"
-          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            BASE="$(git rev-parse HEAD^ || true)"
-          fi
           HEAD="${{ github.sha }}"
+
+          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "BASE sha not found (likely force-push). Falling back to HEAD^."
+            BASE="$(git rev-parse "$HEAD^" 2>/dev/null || true)"
+          fi
+
+          if [ -z "${BASE:-}" ]; then
+            BASE="$HEAD"
+          fi
+
           git diff --name-only "$BASE" "$HEAD" \
             | awk -F/ '/^functions\/[^/]+\//{print $1"/"$2}' \
             | sort -u > changed.txt
-          
+
           jq -Rsc 'split("\n")|map(select(length>0))' changed.txt > dirs.json
           echo "dirs=$(cat dirs.json)" >> "$GITHUB_OUTPUT"
 
@@ -80,6 +87,14 @@ jobs:
           TRIGGER=$(jq -r .trigger "$DIR/function.json")
           AUTH=$(jq -r .allow_unauthenticated "$DIR/function.json")
           
+          # Read secrets mapping if present (optional)
+          SECRETS=$(jq -r '.secrets // {} | to_entries | map("\(.key)=\(.value)") | join(",")' "$DIR/function.json")
+          SECRETS_ARGS=()
+          if [ -n "$SECRETS" ]; then
+            # non-destructive: updates/sets only listed secrets
+            SECRETS_ARGS=(--update-secrets "$SECRETS")
+          fi
+
           ENV_FILE="$DIR/env.dev.yaml"
           if [ "$BRANCH" = "master" ]; then
             ENV_FILE="$DIR/env.prod.yaml"
@@ -103,7 +118,8 @@ jobs:
               --entry-point "$ENTRY" \
               --trigger-http \
               $UA \
-              --env-vars-file "$ENV_FILE"
+              --env-vars-file "$ENV_FILE" \
+              "${SECRETS_ARGS[@]}"
 
             URL=$(gcloud functions describe "$NAME" --gen2 --region "$REGION" \
               --format='value(serviceConfig.uri)')
@@ -124,7 +140,9 @@ jobs:
               --trigger-event-filters=type=google.cloud.firestore.document.v1.written \
               --trigger-event-filters=database="$DB" \
               --trigger-event-filters-path-pattern=document="$PATTERN" \
-              --env-vars-file "$ENV_FILE"
+              --env-vars-file "$ENV_FILE" \
+              "${SECRETS_ARGS[@]}"
+              
           else
             echo "Unknown trigger in $DIR/function.json" >&2
             exit 1

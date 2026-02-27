@@ -1,0 +1,9 @@
+{
+  "name": "ai_send_text_assistant_message",
+  "entrypoint": "ai_send_text_assistant_message",
+  "trigger": "http",
+  "region": "us-central1",
+  "runtime": "python312",
+  "base_image": "python313",
+  "allow_unauthenticated": true
+}

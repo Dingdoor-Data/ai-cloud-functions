@@ -1,0 +1,12 @@
+{
+  "name": "elevenlabs_backfill_conversations",
+  "entrypoint": "elevenlabs_backfill_conversations",
+  "trigger": "http",
+  "region": "us-central1",
+  "runtime": "python312", 
+  "base_image": "python313",
+  "allow_unauthenticated": true,
+  "secrets":{
+    "ELEVENLABS_API_KEY": "ELEVENLABS_API_KEY:latest"
+  }
+}
